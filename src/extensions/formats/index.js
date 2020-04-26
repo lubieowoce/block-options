@@ -18,11 +18,14 @@ import { increaseIndent } from './indent-increase';
 import { decreaseIndent } from './indent-decrease';
 import { charmap } from './charmap';
 
+import { withBlockEditPropsProvider } from './block-edit-context';
+
 /**
  * WordPress dependencies
  */
 const { registerFormatType } = wp.richText;
 const { select } = wp.data;
+const { addFilter } = wp.hooks;
 
 const isDisabled = select( 'core/edit-post' ).isFeatureActive( 'disableEditorsKitLinkFormats' );
 
@@ -53,4 +56,10 @@ function registerEditorsKitFormats() {
 
 wp.domReady(
 	registerEditorsKitFormats
+);
+
+addFilter(
+	'editor.BlockEdit',
+	'editorskit/block-edit-context',
+	withBlockEditPropsProvider,
 );

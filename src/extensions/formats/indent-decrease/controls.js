@@ -4,19 +4,14 @@
 const { __ } = wp.i18n;
 const { Component } = wp.element;
 const { compose, ifCondition } = wp.compose;
-const { withSelect, withDispatch } = wp.data;
+const { withSelect } = wp.data;
 const { RichTextToolbarButton } = wp.blockEditor;
+
+import { withBlockEditProps } from '../block-edit-context';
 
 class DecreaseIndent extends Component {
 	render() {
-		const {
-			selectedBlock,
-			isBlockJustified,
-			updateBlockAttributes,
-		} = this.props;
-
-		const { clientId, attributes } = selectedBlock;
-		const { editorskit } = attributes;
+		const { attributes: { editorskit }, setAttributes } = this.props;
 
 		const onToggle = () => {
 			let indent = 0;
@@ -29,7 +24,7 @@ class DecreaseIndent extends Component {
 
 			const blockOptions = Object.assign( { indent: indent - 20 }, editorskit );
 
-			updateBlockAttributes( clientId, { editorskit: blockOptions } );
+			setAttributes( { editorskit: blockOptions } );
 		};
 
 		return (
@@ -37,30 +32,24 @@ class DecreaseIndent extends Component {
 				icon="editor-outdent"
 				title={ __( 'Indent Decrease', 'block-options' ) }
 				onClick={ onToggle }
-				isActive={ isBlockJustified }
 			/>
 		);
 	}
 }
 
 export default compose(
-	withSelect( ( select ) => {
-		const isDisabled = select( 'core/edit-post' ).isFeatureActive( 'disableEditorsKitIndentFormats' );
-		const selectedBlock = select( 'core/block-editor' ).getSelectedBlock();
-		return {
-			isDisabled,
-			selectedBlock,
-		};
-	} ),
-	withDispatch( ( dispatch ) => ( {
-		updateBlockAttributes: dispatch( 'core/block-editor' ).updateBlockAttributes,
+	withBlockEditProps( ( { attributes, setAttributes } ) => ( {
+		attributes,
+		setAttributes,
 	} ) ),
-	ifCondition( ( props ) => {
-		if ( props.isDisabled || ! props.selectedBlock ) {
+	withSelect( ( select ) => ( {
+		isDisabled: select( 'core/edit-post' ).isFeatureActive( 'disableEditorsKitIndentFormats' ),
+	} ) ),
+	ifCondition( ( { isDisabled, attributes: { editorskit } } ) => {
+		if ( isDisabled ) {
 			return false;
 		}
 
-		const { editorskit } = props.selectedBlock.attributes;
 		if ( typeof editorskit.indent !== 'undefined' && editorskit.indent ) {
 			return true;
 		}

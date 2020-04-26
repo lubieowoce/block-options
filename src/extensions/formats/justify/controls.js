@@ -9,19 +9,18 @@ import { get } from 'lodash';
 const { __ } = wp.i18n;
 const { Component } = wp.element;
 const { compose, ifCondition } = wp.compose;
-const { withSelect, withDispatch } = wp.data;
+const { withSelect } = wp.data;
 const { RichTextToolbarButton } = wp.blockEditor;
+
+import { withBlockEditProps } from '../block-edit-context';
 
 class JustifyControl extends Component {
 	render() {
-		const {
-			blockId,
-			isBlockJustified,
-			updateBlockAttributes,
-		} = this.props;
+		const { attributes, setAttributes } = this.props;
+		const isBlockJustified = 'justify' === get( attributes, 'align' );
 
 		const onToggle = () => {
-			updateBlockAttributes( blockId, { align: isBlockJustified ? null : 'justify' } );
+			setAttributes( { align: isBlockJustified ? null : 'justify' } );
 		};
 		return (
 			<RichTextToolbarButton
@@ -35,30 +34,20 @@ class JustifyControl extends Component {
 }
 
 export default compose(
-	withSelect( ( select ) => {
-		const isDisabled = select( 'core/edit-post' ).isFeatureActive( 'disableEditorsKitJustifyFormats' );
-		const selectedBlock = select( 'core/block-editor' ).getSelectedBlock();
-		if ( isDisabled || ! selectedBlock ) {
-			return {
-				isDisabled,
-			};
-		}
-		return {
-			isDisabled,
-			blockId: selectedBlock.clientId,
-			blockName: selectedBlock.name,
-			isBlockJustified: 'justify' === get( selectedBlock, 'attributes.align' ),
-			formatTypes: select( 'core/rich-text' ).getFormatTypes(),
-		};
-	} ),
-	withDispatch( ( dispatch ) => ( {
-		updateBlockAttributes: dispatch( 'core/block-editor' ).updateBlockAttributes,
+	withBlockEditProps( ( { name, attributes, setAttributes } ) => ( {
+		attributes,
+		setAttributes,
+		blockName: name,
 	} ) ),
-	ifCondition( ( props ) => {
-		if ( props.isDisabled || ! props.blockId ) {
+	withSelect( ( select ) => ( {
+		isDisabled: select( 'core/edit-post' ).isFeatureActive( 'disableEditorsKitJustifyFormats' ),
+		formatTypes: select( 'core/rich-text' ).getFormatTypes(),
+	} ) ),
+	ifCondition( ( { isDisabled, formatTypes, blockName } ) => {
+		if ( isDisabled ) {
 			return false;
 		}
-		const checkFormats = props.formatTypes.filter( ( formats ) => formats.name === 'wpcom/justify' );
-		return 'core/paragraph' === props.blockName && checkFormats.length === 0;
+		const shouldHide = formatTypes.some( ( format ) => format.name === 'wpcom/justify' );
+		return 'core/paragraph' === blockName && ! shouldHide;
 	} )
 )( JustifyControl );
